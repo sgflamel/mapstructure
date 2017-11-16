@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"reflect"
 	"sort"
 	"strconv"
@@ -337,7 +338,15 @@ func (d *Decoder) decodeInt(name string, data interface{}, val reflect.Value) er
 		if err == nil {
 			val.SetInt(i)
 		} else {
-			return fmt.Errorf("cannot parse '%s' as int: %s", name, err)
+			f, err := strconv.ParseFloat(dataVal.String(), val.Type().Bits())
+			if err != nil {
+				return fmt.Errorf("cannot parse '%s' as int or float: %s", name, err)
+			}
+			if f == float64(int64(f)) && int64(f) <= math.MaxInt64 {
+				val.SetInt(int64(f))
+			} else {
+				return fmt.Errorf("cannot parse '%s' as int: %s", name, err)
+			}
 		}
 	case dataType.PkgPath() == "encoding/json" && dataType.Name() == "Number":
 		jn := data.(json.Number)
